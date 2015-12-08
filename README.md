@@ -25,6 +25,13 @@ A worker is an individual elixir process which does a piece of work and returns 
 
 - Each node has a minimum amount of RAM (as a % of total system RAM) per worker based on its maximum number of workers and total RAM.
 
-##Workflow Overview:
+##Config Files:
+####Work Configuration File
+- List of raw data files to be used.
+- 
+
+####Hosts Configuration File
+- List of available hosts
+- Information about performance of individual hosts
 
 
