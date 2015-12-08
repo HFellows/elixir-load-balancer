@@ -28,7 +28,6 @@ A worker is an individual elixir process which does a piece of work and returns 
 ##Config Files:
 ####Work Configuration File
 - List of raw data files to be used.
-- 
 
 ####Hosts Configuration File
 - List of available hosts
