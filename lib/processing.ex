@@ -4,8 +4,8 @@ defmodule mapper
     receive do
       {:confirm?, pid} ->
         send (pid {:ready, self(), "Fib Mapper v1.0"})
-      {:go, a, b, filename} ->
-        start(a, b, filename)
+      {:go, pid, a, b, filename} ->
+        start(pid, a, b, filename)
     end
   end
 
@@ -17,15 +17,30 @@ defmodule mapper
     fib(line)
   end
 
-  def start(a, b, filename) do
+  def start(pid, a, b, filename) do
     IO.puts("Fib Mapper Running with a: #{a}, b: #{b}, and filename: #{filename}")
 
     fileStream = File.stream!(filename)
 
-    results = Enum.map(Enum.take(Enum.drop(a-1), (b + 1 - a)), &work(&1))
+    results = Enum.drop(fileStream, a-1)
+    |> Enum.take((b + 1 - a))
+    |> Enum.map(&String.to_integer(String.strip(&1)))
+    |> Enum.map(&work(&1))
 
-    ## Send results to worker, from there they go to a reducer
+    send(pid, {:result, results})
+    loopy()
   end
+
+ def loopy() do
+   receive do
+
+     {:go, pid, a, b, filename} -> start(pid, a, b, filename)
+
+     # TODO: Add option to kill mapper.
+
+   end
+ end
+
 
 end
 
@@ -34,13 +49,26 @@ defmodule reducer
   def initalize()
     receive do
       {:confirm?, pid} ->
-        send (pid {:ready, self(), "Default"})
-        {:go, a, b, filename} ->
-          start(a, b, filename)
-        end
+        send (pid {:ready, self(), "Fib Reducer v1.0"})
+      {:go, pid, work} ->
+        start(pid, work)
       end
+    end
 
-  def start(a, b, filename)
-    IO.puts("The default reducer module hasn't been replaced.")
+  def start(pid, work)
+    result = Enum.map(work, (&(&1 + &2)))
+
+    send(pid {:result, result})
+    loopy()
   end
+
+  def loopy() do
+    receive do
+      {:go, pid, work} -> start(pid, work)
+
+      #TODO: add option to kill mapper
+    end
+  end
+
+
 end
