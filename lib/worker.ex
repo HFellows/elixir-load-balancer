@@ -57,3 +57,69 @@ defmodule Worker do
     messaging_loop(mapper_pid, reducer_pid, master_pid)
   end
 end
+
+## This mapper / reducer set takes the sum of a bunch of fibs of numbers.
+defmodule mapper
+  def initalize()
+    receive do
+      {:confirm?, pid} ->
+        send (pid {:ready, self(), "Default"})
+      {:go, pid, a, b, filename} ->
+        start(pid, a, b, filename)
+    end
+  end
+
+  def work(line) do
+    #work here
+  end
+
+  def start(pid, a, b, filename) do
+    fileStream = File.stream!(filename)
+
+    # Assumes you want an integer from each line of the file,
+    # calls work on each of those.
+    results = Enum.drop(fileStream, a-1)
+    |> Enum.take((b + 1 - a))
+    |> Enum.map(&String.to_integer(String.strip(&1)))
+    |> Enum.map(&work(&1))
+
+    # Sends results back to the worker, begins waiting for more work.
+    send(pid, {:result, results})
+    loopy()
+  end
+
+  def loopy() do
+    receive do
+      {:go, pid, a, b, filename} -> start(pid, a, b, filename)
+      # TODO: Add option to kill mapper.
+    end
+  end
+end
+
+# Fix this thing's go.
+defmodule reducer
+  def initalize()
+    receive do
+      {:confirm?, pid} ->
+        send (pid {:ready, self(), "Default"})
+      {:go, pid, work} ->
+        start(pid, work)
+      end
+    end
+
+  def start(pid, work)
+    # Assumes that work is a list of ints, and sums them.
+    result = Enum.map(work, (&(&1 + &2)))
+
+    # Sends the sum to the worker and begins waiting for more work.
+    send(pid {:result, result})
+    loopy()
+  end
+
+  def loopy() do
+    receive do
+      {:go, pid, work} -> start(pid, work)
+      #TODO: add option to kill mapper
+    end
+  end
+end
